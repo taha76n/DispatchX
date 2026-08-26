@@ -47,7 +47,7 @@ interface MenuItemData {
 
 type CartState = Record<string, number>;
 
-const formatPrice = (paisa: number) => `Rs. ${(paisa).toFixed(2)}`;
+const formatPrice = (paisa: number) => `Rs. ${paisa.toFixed(2)}`;
 
 const RestaurantDetail = () => {
   const params = useParams();
@@ -63,8 +63,8 @@ const RestaurantDetail = () => {
   const [menuItems, setMenuItems] = useState<MenuItemData[]>([]);
   const [cart, setCart] = useState<CartState>({});
   const [orderError, setOrderError] = useState<string>("");
-  const [placingOrder, setPlacingOrder] = useState<boolean>(false)
-  const [order, setOrder] = useState()
+  const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+  const [order, setOrder] = useState(null);
 
   const onIncrement = (menuItemId: string) => {
     setCart((prev) => ({ ...prev, [menuItemId]: (prev[menuItemId] ?? 0) + 1 }));
@@ -85,10 +85,16 @@ const RestaurantDetail = () => {
     try {
       setOrderError("");
       setPlacingOrder(true);
-      const items = Object.entries(cart).map((item) => ({menuItemId: item[0] , quantity: item[1]}))
-      const { order } = await api.post("/order/create", { restaurantId, items });
-      setOrder(order)
-      setPlacingOrder(false)
+      const items = Object.entries(cart).map((item) => ({
+        menuItemId: item[0],
+        quantity: item[1],
+      }));
+      const { order } = await api.post("/order/create", {
+        restaurantId,
+        items,
+      });
+      setOrder(order);
+      setPlacingOrder(false);
     } catch (error) {
       if (error instanceof ApiError) {
         setOrderError(error.message);
@@ -405,7 +411,7 @@ const RestaurantDetail = () => {
         </Stack>
       </Container>
 
-      {cartLines.length > 0 && (
+      {(cartLines.length > 0 || order !== null) && (
         <Box
           sx={{
             position: "fixed",
@@ -423,45 +429,75 @@ const RestaurantDetail = () => {
                 {orderError}
               </Alert>
             )}
-            <Stack
-              direction="row"
-              sx={{ justifyContent: "space-between", alignItems: "center" }}
-            >
-              <Box>
-                <Typography
-                  sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    fontSize: 12,
-                    color: colors.fog,
-                  }}
-                >
-                  {cartLines.length} item{cartLines.length > 1 ? "s" : ""}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    fontWeight: 600,
-                    fontSize: 18,
-                  }}
-                >
-                  {formatPrice(total)}
-                </Typography>
-              </Box>
-              <Button
-                onClick={onPlaceOrder}
-                disabled={placingOrder}
-                variant="contained"
-                sx={{
-                  bgcolor: colors.ember,
-                  textTransform: "none",
-                  fontWeight: 500,
-                  px: 4,
-                  "&:hover": { bgcolor: "#D67630" },
-                }}
+
+            {order === null ? (
+              <Stack
+                direction="row"
+                sx={{ justifyContent: "space-between", alignItems: "center" }}
               >
-                {placingOrder ? "Placing order..." : "Place order"}
-              </Button>
-            </Stack>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontFamily: '"IBM Plex Mono", monospace',
+                      fontSize: 12,
+                      color: colors.fog,
+                    }}
+                  >
+                    {cartLines.length} item{cartLines.length > 1 ? "s" : ""}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: '"Space Grotesk", sans-serif',
+                      fontWeight: 600,
+                      fontSize: 18,
+                    }}
+                  >
+                    {formatPrice(total)}
+                  </Typography>
+                </Box>
+                <Button
+                  onClick={onPlaceOrder}
+                  disabled={placingOrder}
+                  variant="contained"
+                  sx={{
+                    bgcolor: colors.ember,
+                    textTransform: "none",
+                    fontWeight: 500,
+                    px: 4,
+                    "&:hover": { bgcolor: "#D67630" },
+                  }}
+                >
+                  {placingOrder ? "Placing order..." : "Place order"}
+                </Button>
+              </Stack>
+            ) : (
+              <Stack
+                direction="row"
+                sx={{ justifyContent: "space-between", alignItems: "center" }}
+              >
+                <Typography
+                  sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: 14,
+                    color: colors.paper,
+                  }}
+                >
+                  Order placed! We'll notify you once it's confirmed.
+                </Typography>
+                <Button
+                  onClick={() => navigate(`/customer/orders`)}
+                  variant="outlined"
+                  sx={{
+                    color: colors.route,
+                    borderColor: "rgba(79,209,197,0.4)",
+                    textTransform: "none",
+                    "&:hover": { borderColor: colors.route },
+                  }}
+                >
+                  Track your order →
+                </Button>
+              </Stack>
+            )}
           </Container>
         </Box>
       )}

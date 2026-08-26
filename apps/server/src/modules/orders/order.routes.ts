@@ -10,6 +10,5 @@ router.get("/mine", authMiddleware, orderController.getMyOrders);
 router.get("/restaurant/:restaurantId", authMiddleware, orderController.getRestaurantOrders);
 router.get("/:orderId", authMiddleware, orderController.getOrderById);
 router.patch("/:orderId/status", authMiddleware, orderController.updateOrderStatus);
-router.patch("/:orderId/cancel", authMiddleware, orderController.cancelOrder);
 
 export default router;

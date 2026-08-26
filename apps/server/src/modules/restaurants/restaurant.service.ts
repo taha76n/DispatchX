@@ -115,10 +115,17 @@ const deleteRestaurantById = async (
   await Restaurant.findByIdAndDelete(restaurantId);
 };
 
+const getMyRestaurants = async (userId: string) => {
+  const restaurants = await Restaurant.find({ ownerId: userId });
+
+  return restaurants;
+};
+
 export const restaurantService = {
   createRestaurant,
   getRestaurantById,
   getAllRestaurants,
   updateRestaurantDetails,
   deleteRestaurantById,
+  getMyRestaurants
 };

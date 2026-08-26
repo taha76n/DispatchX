@@ -16,7 +16,7 @@ interface AuthProviderProps {
 
 const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<PublicUser | null>(null);
-  const [loading, setloading] = useState<boolean>(false);
+  const [loading, setloading] = useState<boolean>(true);
 
   const fetchUser = async () => {
     try {

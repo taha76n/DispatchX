@@ -6,6 +6,7 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import { theme } from "./theme.ts";
 import { AuthProvider } from "./context/AuthContext.tsx";
 import { BrowserRouter } from "react-router-dom";
+import { SelectedRestaurantProvider } from "./context/SelectedRestaurantContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -13,7 +14,9 @@ createRoot(document.getElementById("root")!).render(
       <CssBaseline />
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <SelectedRestaurantProvider>
+            <App />
+          </SelectedRestaurantProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

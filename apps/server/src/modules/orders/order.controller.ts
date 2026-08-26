@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
 import { Types } from "mongoose";
 import { orderService } from "./order.service.js";
-import type { OrderStatus } from "./order.model.js";
 import { RestaurantIdParams } from "../restaurants/restaurant.controller.js";
+import { OrderStatus } from "@dispatchx/shared";
 
 const ALLOWED_STATUSES: OrderStatus[] = [
-  "placed",
   "accepted",
   "preparing",
   "out_for_delivery",
   "delivered",
-  "cancelled",
+  "cancelled_by_customer",
+  "cancelled_by_restaurant",
 ];
 
 const createOrder = async (req: Request, res: Response) => {
@@ -51,14 +51,35 @@ interface OrderIdParams {
 }
 
 const getOrderById = async (req: Request<OrderIdParams>, res: Response) => {
+  const userId = req._id;
+  const requesterRole = req.role;
   const { orderId } = req.params;
+
+  if (!userId) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "You should be login to perform this action",
+      });
+  }
+
+  if (!requesterRole) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "You should be login to perform this action",
+      });
+  }
+
   if (!orderId || !Types.ObjectId.isValid(orderId)) {
     return res
       .status(400)
       .json({ success: false, message: "Valid orderId is required" });
   }
 
-  const order = await orderService.getOrderById(orderId, req._id!, req.role!);
+  const order = await orderService.getOrderById(orderId, userId, requesterRole);
   return res
     .status(200)
     .json({ success: true, message: "Order fetched successfully", order });
@@ -86,21 +107,39 @@ const getRestaurantOrders = async (
     restaurantId,
     req._id!
   );
-  return res
-    .status(200)
-    .json({
-      success: true,
-      message: "Restaurant orders fetched successfully",
-      orders,
-    });
+  return res.status(200).json({
+    success: true,
+    message: "Restaurant orders fetched successfully",
+    orders,
+  });
 };
 
 const updateOrderStatus = async (
   req: Request<OrderIdParams>,
   res: Response
 ) => {
+  const userId = req._id;
+  const requesterRole = req.role;
   const { orderId } = req.params;
   const { status } = req.body;
+
+  if (!userId) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "You should be login to perform this action",
+      });
+  }
+
+  if (!requesterRole) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "You should be login to perform this action",
+      });
+  }
 
   if (!orderId || !Types.ObjectId.isValid(orderId)) {
     return res
@@ -113,28 +152,17 @@ const updateOrderStatus = async (
       .json({ success: false, message: "Valid status is required" });
   }
 
-  const order = await orderService.updateOrderStatus(orderId, req._id!, status);
-  return res
-    .status(200)
-    .json({
-      success: true,
-      message: "Order status updated successfully",
-      order,
-    });
-};
-
-const cancelOrder = async (req: Request<OrderIdParams>, res: Response) => {
-  const { orderId } = req.params;
-  if (!orderId || !Types.ObjectId.isValid(orderId)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Valid orderId is required" });
-  }
-
-  const order = await orderService.cancelOrder(orderId, req._id!);
-  return res
-    .status(200)
-    .json({ success: true, message: "Order cancelled successfully", order });
+  const order = await orderService.updateOrderStatus(
+    orderId,
+    userId,
+    status,
+    requesterRole
+  );
+  return res.status(200).json({
+    success: true,
+    message: "Order status updated successfully",
+    order,
+  });
 };
 
 export const orderController = {
@@ -143,5 +171,5 @@ export const orderController = {
   getMyOrders,
   getRestaurantOrders,
   updateOrderStatus,
-  cancelOrder,
+  
 };

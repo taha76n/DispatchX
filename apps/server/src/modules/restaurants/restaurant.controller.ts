@@ -215,10 +215,37 @@ const deleteRestaurantById = async (
     .json({ success: true, message: "Restaurant deleted succesfully" });
 };
 
+const getMyRestaurants = async (req: Request, res: Response) => {
+  const userId = req._id;
+  const requesterRole = req.role
+
+  if (requesterRole !== "restaurant") {
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message: "You should be a restaurant owner to perform this action",
+      });
+  }
+  if (!userId) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "You should be login to perform this action",
+      });
+  }
+
+  const restaurants = await restaurantService.getMyRestaurants(userId)
+
+  return res.status(200).json({success: true, message: "Restaurants fetched successfully", restaurants})
+};
+
 export const restaurantController = {
   createRestaurant,
   getRestaurantById,
   getAllRestaurants,
   updateRestaurantDetails,
   deleteRestaurantById,
+  getMyRestaurants
 };

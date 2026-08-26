@@ -5,14 +5,18 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ProtectedRoute from "./lib/ProtectedRoute";
 import RiderDashboard from "./pages/RiderDashboard";
 import Landing from "./pages/Landing";
-// import RestaurantDashboard from "./pages/RestaurantDashboard";
 import Restaurants from "./pages/Restaurants";
 import RestaurantDetails from "./pages/RestaurantDetails";
 import CreateRestaurant from "./pages/CreateRestaurant";
+import RestaurantDashboard from "./pages/RestaurantDashboard";
+import MyOrders from "./pages/MyOrders";
+import RestaurantOrders from "./pages/RestaurantOrders";
+import Navbar from "./components/Navbar";
 
 const App = () => {
   return (
     <>
+    <Navbar/>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/register" element={<Register />} />
@@ -26,14 +30,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/dashboard/restaurant"
+        <Route
+          path="/restaurant/dashboard"
           element={
             <ProtectedRoute allowedRoles={["restaurant"]}>
               <RestaurantDashboard />
             </ProtectedRoute>
           }
-        /> */}
+        />
         <Route
           path="/dashboard/rider"
           element={
@@ -51,10 +55,26 @@ const App = () => {
           }
         />
         <Route
+          path="/restaurant/:restaurantId/orders"
+          element={
+            <ProtectedRoute allowedRoles={["restaurant"]}>
+              <RestaurantOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/restaurant/create"
           element={
             <ProtectedRoute allowedRoles={["restaurant"]}>
               <CreateRestaurant />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/orders"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <MyOrders />
             </ProtectedRoute>
           }
         />

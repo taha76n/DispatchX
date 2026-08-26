@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 
 const ROLE_HOME_PATH: Record<Role, string> = {
   customer: "/restaurants",
-  restaurant: "/restaurant/create",
+  restaurant: "/restaurant/dashboard",
   rider: "/dashboard/rider"
 }
 

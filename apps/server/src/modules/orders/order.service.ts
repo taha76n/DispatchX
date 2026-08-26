@@ -1,12 +1,19 @@
-import { Order, type OrderStatus } from "./order.model.js";
+import { Order } from "./order.model.js";
 import { MenuItem } from "../restaurants/menuItem.model.js";
 import { Restaurant } from "../restaurants/restaurant.model.js";
 import {
   BadRequestError,
+  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
 } from "../../shared/utils/error.js";
 import { Types } from "mongoose";
+import {
+  ActorState,
+  canTransition,
+  OrderStatus,
+  TRANSITION_ACTORS,
+} from "@dispatchx/shared";
 
 interface IncomingItem {
   menuItemId: string;
@@ -114,18 +121,73 @@ const getOrdersForRestaurant = async (
 const updateOrderStatus = async (
   orderId: string,
   requesterId: string,
-  newStatus: OrderStatus
+  newStatus: OrderStatus,
+  requesterRole: string
 ) => {
   const order = await Order.findById(orderId);
   if (!order) {
     throw new NotFoundError("Order not found");
   }
 
-  const restaurant = await Restaurant.findById(order.restaurantId);
-  if (!restaurant || restaurant.ownerId.toString() !== requesterId) {
+  const isCustomer = order.customerId.toString() === requesterId;
+  let isRestaurantOwner = false;
+
+  if (requesterRole === "restaurant") {
+    const restaurant = await Restaurant.findById(order.restaurantId);
+    isRestaurantOwner = restaurant?.ownerId.toString() === requesterId;
+  }
+
+  let actorState: ActorState;
+
+  if (isCustomer) {
+    actorState = "customer";
+  } else if (isRestaurantOwner) {
+    actorState = "restaurant";
+  } else {
+    actorState = null;
+  }
+
+  if (actorState === null) {
     throw new UnauthorizedError(
-      "Only the restaurant owner can update order status"
+      "Only the customer and restaurant owner can update order status"
     );
+  }
+
+  const isTransitionAllowed = canTransition(order.status, newStatus); // if ("accepted", "preparing") it will return true but ("placed", "preparing") it will return false
+
+  if (!isTransitionAllowed) {
+    throw new ForbiddenError(
+      `Cannot transition from ${order.status} to ${newStatus}`
+    );
+  }
+
+  const allowedActor = TRANSITION_ACTORS[newStatus]; // who is allowed to change/initiate a specific state in case of preparing only restaurant is allowed
+
+  if (actorState !== allowedActor) {
+    throw new ForbiddenError(
+      `Only the ${actorState} can mark an order as ${newStatus}`
+    );
+  }
+
+  switch (newStatus) {
+    case "accepted":
+      order.acceptedAt = new Date();
+      break;
+    case "preparing":
+      order.preparingAt = new Date();
+      break;
+    case "out_for_delivery":
+      order.outForDeliveryAt = new Date();
+      break;
+    case "delivered":
+      order.deliveredAt = new Date();
+      break;
+    case "cancelled_by_customer":
+    case "cancelled_by_restaurant":
+      order.cancelledAt = new Date();
+      break;
+    default:
+      break;
   }
 
   order.status = newStatus;
@@ -133,24 +195,7 @@ const updateOrderStatus = async (
   return order;
 };
 
-const cancelOrder = async (orderId: string, requesterId: string) => {
-  const order = await Order.findById(orderId);
-  if (!order) {
-    throw new NotFoundError("Order not found");
-  }
-  if (order.customerId.toString() !== requesterId) {
-    throw new UnauthorizedError(
-      "Only the customer who placed this order can cancel it"
-    );
-  }
-  if (order.status !== "placed") {
-    throw new BadRequestError("Order can no longer be cancelled");
-  }
 
-  order.status = "cancelled";
-  await order.save();
-  return order;
-};
 
 export const orderService = {
   createOrder,
@@ -158,5 +203,4 @@ export const orderService = {
   getOrdersForCustomer,
   getOrdersForRestaurant,
   updateOrderStatus,
-  cancelOrder,
 };

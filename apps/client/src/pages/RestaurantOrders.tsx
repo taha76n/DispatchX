@@ -12,6 +12,7 @@ import Loading from "../components/Loading";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { ApiError } from "../lib/apiError";
+import { useParams } from "react-router-dom";
 
 const colors = {
   ink: "#14171C",
@@ -66,7 +67,6 @@ export interface OrderData {
   createdAt: string;
 }
 
-
 const formatPrice = (paisa: number) => `Rs. ${(paisa / 1).toFixed(2)}`;
 
 const formatDate = (iso: string) =>
@@ -77,47 +77,47 @@ const formatDate = (iso: string) =>
     minute: "2-digit",
   });
 
-const MyOrders = () => {
+const RestaurantOrders = () => {
   const [orders, setOrders] = useState<OrderData[]>([]);
-  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
     null
   );
 
+  const params = useParams()
+  const restaurantId = params.restaurantId
 
-  const fetchOrder = async() => {
+  const fetchOrders = async () => {
     try {
-      setError("")
-      const {orders} = await api.get(`order/mine`)
-      setLoading(true)
-     setOrders(orders)
+      setError("");
+      setLoading(true);
+      const { orders } = await api.get(`/order/restaurant/${restaurantId}`);
+      setOrders(orders);
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message);
       } else {
         setError("Something went wrong");
       }
-      
-    }finally{
-      setLoading(false)
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchOrder()
-  }, [orders])
+    fetchOrders()
+  }, [restaurantId])
   
 
   const onCancelOrder = async (orderId: string) => {
     try {
       setError("");
       setLoading(true);
-      setCancellingOrderId(orderId)
-      const { order, message } = await api.patch(`/order/${orderId}/status`, {
-        status: "cancelled_by_customer",
+      setCancellingOrderId(orderId);
+      const { order } = await api.patch(`/order/${orderId}/status`, {
+        status: "cancelled_by_restaurant",
       });
-      alert(message)
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message);
@@ -260,9 +260,8 @@ const MyOrders = () => {
                 </Stack>
 
                 <Stack
-                direction= "row"
                   sx={{
-                    
+                    direction: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
@@ -318,4 +317,4 @@ const MyOrders = () => {
   );
 };
 
-export default MyOrders;
+export default RestaurantOrders;

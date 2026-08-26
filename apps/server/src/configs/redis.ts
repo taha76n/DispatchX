@@ -7,7 +7,7 @@ export const redisClient = createClient({
 });
 
 redisClient.on("error", (err) => {
-  logger.error("Redis client error", { error: err.message });
+  logger.error(err.message , 'Redis client error')
 });
 
 redisClient.on("connect", () => {

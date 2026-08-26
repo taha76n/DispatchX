@@ -219,7 +219,7 @@ const CreateRestaurant = () => {
               value={values.openTime}
               onChange={(e) => onChange("openTime", e.target.value)}
               margin="normal"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               sx={fieldSx}
             />
             <TextField
@@ -229,7 +229,7 @@ const CreateRestaurant = () => {
               value={values.closeTime}
               onChange={(e) => onChange("closeTime", e.target.value)}
               margin="normal"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               sx={fieldSx}
             />
           </Stack>

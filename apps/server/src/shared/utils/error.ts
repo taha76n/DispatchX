@@ -24,11 +24,17 @@ class NotFoundError extends AppError {
 
 class UnauthorizedError extends AppError {
   constructor(message: string = "Unauthorized Error") {
-    super(message, 405);
+    super(message, 401);
   }
 }
 
-class UnauthenticatedError extends AppError {
+class ForbiddenError extends AppError {
+  constructor(message: string = "Forbidden Error") {
+    super(message, 403);
+  }
+}
+
+class MethodNotAllowedError extends AppError {
   constructor(message: string = "Unauthorized Error") {
     super(message, 405);
   }
@@ -45,6 +51,7 @@ export {
   BadRequestError,
   NotFoundError,
   UnauthorizedError,
+  ForbiddenError,
   TooManyReuestsError,
-  UnauthenticatedError,
+  MethodNotAllowedError,
 };

@@ -1,12 +1,6 @@
+import { OrderStatus } from "@dispatchx/shared";
 import mongoose, { Schema, Types } from "mongoose";
 
-export type OrderStatus =
-  | "placed"
-  | "accepted"
-  | "preparing"
-  | "out_for_delivery"
-  | "delivered"
-  | "cancelled";
 
 interface OrderItem {
   menuItemId: Types.ObjectId;
@@ -21,6 +15,12 @@ interface OrderDocument {
   items: OrderItem[];
   totalPrice: number;
   status: OrderStatus;
+  placedAt: Date;
+  acceptedAt?: Date;
+  preparingAt?: Date;
+  outForDeliveryAt?: Date;
+  deliveredAt?: Date;
+  cancelledAt?: Date;
 }
 
 const orderItemSchema = new Schema<OrderItem>(
@@ -62,9 +62,30 @@ const orderSchema = new Schema<OrderDocument>(
         "preparing",
         "out_for_delivery",
         "delivered",
-        "cancelled",
+        "cancelled_by_customer",
+        "cancelled_by_restaurant",
       ],
       default: "placed",
+    },
+    placedAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+    acceptedAt: {
+      type: Date,
+    },
+    preparingAt: {
+      type: Date,
+    },
+    outForDeliveryAt: {
+      type: Date,
+    },
+    deliveredAt: {
+      type: Date,
+    },
+    cancelledAt: {
+      type: Date,
     },
   },
   { timestamps: true }
