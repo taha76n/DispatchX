@@ -16,4 +16,7 @@ export const config = {
   JWT_ACCESS_SECRET: getEnv("JWT_ACCESS_SECRET"),
   JWT_REFRESH_SECRET: getEnv("JWT_REFRESH_SECRET"),
   REDIS_URL: getEnv("REDIS_URL"),
+  SMTP_USER: getEnv("SMTP_USER"),
+  SMTP_PASS: getEnv("SMTP_PASS"),
+  RABBITMQ_URL: getEnv("RABBITMQ_URL")
 };

@@ -13,9 +13,10 @@ import {
 import RestaurantLocationPicker, {
   type LatLng,
 } from "../components/RestaurantLocationPicker";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { api } from "../lib/api";
 import { ApiError } from "../lib/apiError";
+import { useNavigate } from "react-router-dom";
 
 const colors = {
   ink: "#14171C",
@@ -50,6 +51,7 @@ const fieldSx = {
 };
 
 const CreateRestaurant = () => {
+  const navigate = useNavigate();
   const [values, setValues] = useState<CreateRestaurantFormValues>({
     name: "",
     description: "",
@@ -63,26 +65,44 @@ const CreateRestaurant = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   const submitHandler = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
+    const key = idempotencyKeyRef.current;
+
     try {
       setErrorMessage("");
       setLoading(true);
-      const { restaurant } = await api.post("/restaurant/create", {
-        name: values.name,
-        description: values.description,
-        isOpen: values.isOpen,
-        keywords: values.keywords.split(","),
-        address: {
-          text: values.addressText,
-          location: {
-            type: "Point",
-            coordinates: [values.location.lng, values.location.lat],
+      const { restaurant } = await api.post(
+        "/restaurant/create",
+        {
+          name: values.name,
+          description: values.description,
+          isOpen: values.isOpen,
+          keywords: values.keywords.split(","),
+          address: {
+            text: values.addressText,
+            location: {
+              type: "Point",
+              coordinates: [values.location.lng, values.location.lat],
+            },
           },
+          operatingHours: { open: values.openTime, close: values.closeTime },
         },
-        operatingHours: { open: values.openTime, close: values.closeTime },
-      });
+        {
+          headers: {
+            "idempotency-key": key,
+          },
+        }
+      );
       console.log(restaurant);
+      idempotencyKeyRef.current = null; // clear before navigation
+      navigate("/restaurant/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);

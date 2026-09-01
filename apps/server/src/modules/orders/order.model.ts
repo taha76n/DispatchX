@@ -21,6 +21,7 @@ interface OrderDocument {
   outForDeliveryAt?: Date;
   deliveredAt?: Date;
   cancelledAt?: Date;
+  timedOutAt?: Date;
 }
 
 const orderItemSchema = new Schema<OrderItem>(
@@ -64,6 +65,7 @@ const orderSchema = new Schema<OrderDocument>(
         "delivered",
         "cancelled_by_customer",
         "cancelled_by_restaurant",
+        "timed_out"
       ],
       default: "placed",
     },
@@ -85,6 +87,9 @@ const orderSchema = new Schema<OrderDocument>(
       type: Date,
     },
     cancelledAt: {
+      type: Date,
+    },
+    timedOutAt: {
       type: Date,
     },
   },

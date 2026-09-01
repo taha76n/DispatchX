@@ -29,7 +29,8 @@ export type OrderStatus =
   | "out_for_delivery"
   | "delivered"
   | "cancelled_by_customer"
-  | "cancelled_by_restaurant";
+  | "cancelled_by_restaurant"
+  | "timed_out"
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   placed: "Placed",
@@ -39,6 +40,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   delivered: "Delivered",
   cancelled_by_customer: "Cancelled by you",
   cancelled_by_restaurant: "Cancelled by restaurant",
+  timed_out: "Timed Out"
 };
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
@@ -49,6 +51,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   delivered: "#4CAF50",
   cancelled_by_customer: "#E5484D",
   cancelled_by_restaurant: "#E5484D",
+  timed_out: colors.ember
 };
 
 interface OrderItemData {
@@ -89,8 +92,8 @@ const MyOrders = () => {
   const fetchOrder = async() => {
     try {
       setError("")
-      const {orders} = await api.get(`order/mine`)
       setLoading(true)
+      const {orders} = await api.get(`order/mine`)
      setOrders(orders)
     } catch (error) {
       if (error instanceof ApiError) {
@@ -106,7 +109,7 @@ const MyOrders = () => {
 
   useEffect(() => {
     fetchOrder()
-  }, [orders])
+  }, [])
   
 
   const onCancelOrder = async (orderId: string) => {

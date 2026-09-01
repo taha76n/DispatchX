@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { redisClient } from "../../configs/redis.js";
+import { logger } from "../utils/logger.js";
 
 export const idempotencyMiddleware = async (
   req: Request,
@@ -8,6 +9,8 @@ export const idempotencyMiddleware = async (
 ) => {
   let idempotencyKey: string | string[] | undefined =
     req.headers["idempotency-key"];
+
+  logger.info(idempotencyKey)
 
   if (Array.isArray(idempotencyKey)) {
     idempotencyKey = idempotencyKey[0];

@@ -34,7 +34,8 @@ export type OrderStatus =
   | "out_for_delivery"
   | "delivered"
   | "cancelled_by_customer"
-  | "cancelled_by_restaurant";
+  | "cancelled_by_restaurant"
+  | "timed_out";
 
 export interface OrderItem {
   menuItemId: string;
@@ -119,6 +120,16 @@ export interface CancelledByRestaurantOrder {
   cancelledAt: Date;
 }
 
+export interface TimedOutOrder {
+  status: "timed_out";
+  customerId: string;
+  restaurantId: string;
+  items: OrderItem[];
+  totalPrice: number;
+  placedAt: Date;
+  timedOutAt: Date;
+}
+
 // The "union": an Order is one of these
 export type Order =
   | PlacedOrder
@@ -127,31 +138,41 @@ export type Order =
   | OutForDeliveryOrder
   | DeliveredOrder
   | CancelledByCustomerOrder
-  | CancelledByRestaurantOrder;
+  | CancelledByRestaurantOrder
+  | TimedOutOrder;
 
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  placed: ["accepted", "cancelled_by_customer", "cancelled_by_restaurant"],
+  placed: [
+    "accepted",
+    "cancelled_by_customer",
+    "cancelled_by_restaurant",
+    "timed_out",
+  ],
   accepted: ["preparing", "cancelled_by_restaurant"],
   preparing: ["out_for_delivery"],
   out_for_delivery: ["delivered"],
   delivered: [],
   cancelled_by_customer: [],
   cancelled_by_restaurant: [],
+  timed_out: [],
 };
 
 export const canTransition = (from: OrderStatus, to: OrderStatus): boolean => {
   return ORDER_TRANSITIONS[from].includes(to);
 };
 
-export const TRANSITION_ACTORS: Record<OrderStatus, "customer" | "restaurant" | null> = {
-  "placed": null,
-  "accepted": "restaurant",
-  "preparing": "restaurant",
-  "out_for_delivery": "restaurant",
-  "delivered": "restaurant",
-  "cancelled_by_customer": "customer",
-  "cancelled_by_restaurant": "restaurant"
+export const TRANSITION_ACTORS: Record<
+  OrderStatus,
+  "customer" | "restaurant" | "system" | null
+> = {
+  placed: null,
+  accepted: "restaurant",
+  preparing: "restaurant",
+  out_for_delivery: "restaurant",
+  delivered: "restaurant",
+  cancelled_by_customer: "customer",
+  cancelled_by_restaurant: "restaurant",
+  timed_out: "system",
+};
 
-}
-
-export type ActorState = "customer" | "restaurant" | null
+export type ActorState = "customer" | "restaurant" | "system" | null;

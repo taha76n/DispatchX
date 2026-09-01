@@ -15,6 +15,16 @@ services:
     volumes:
       - redis-data:/data
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: dispatchx-rabbitmq
+    ports:
+      - "5672:5672" # AMQP protocol — your Node app connects here
+      - "15672:15672" # Management UI — you'll open this in a browser
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
 volumes:
   mongo-data:
   redis-data:
+  rabbitmq-data:

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import bcrypt from "bcryptjs";
 import {
   BadRequestError,
@@ -18,6 +19,8 @@ import {
 import { Role } from "@dispatchx/shared";
 import { RefreshToken } from "./refreshToken.model.js";
 import { logger } from "../../shared/utils/logger.js";
+import { verificationEmailTemplate } from "../../shared/utils/emailTemplates.js";
+import { publishToQueue } from "../../configs/rabbitmq.js";
 
 const Register = async (
   name: string,
@@ -49,6 +52,15 @@ const Register = async (
   });
 
   const verificationUrl = await generateVerificationToken(email);
+
+  const msg = {
+    to: email,
+    subject: "Account Verification URL",
+    text: verificationUrl,
+    html: verificationEmailTemplate({name, verificationUrl})
+  }
+
+  publishToQueue("verification-email-queue", msg)
   logger.info(verificationUrl)
 
   return { user, verificationUrl };
