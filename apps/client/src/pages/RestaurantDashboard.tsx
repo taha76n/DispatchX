@@ -82,7 +82,7 @@ const EMPTY_MENU_FORM: MenuItemFormValues = {
   tags: "",
 };
 
-const formatPrice = (paisa: number) => `Rs. ${(paisa / 1).toFixed(2)}`;
+const formatPrice = (paisa: number) => `Rs. ${(paisa / 100).toFixed(2)}`;
 
 const RestaurantDashboard = () => {
   const { restaurants, selectedRestaurantId, setSelectedRestaurantId, loading: loadingRestaurants } =

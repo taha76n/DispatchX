@@ -1,4 +1,4 @@
-import app from "./app.js";
+import { server } from "./app.js";
 import { config } from "./configs/index.js";
 import { connectDb } from "./configs/mongo.js";
 import {
@@ -14,6 +14,6 @@ await connectRabbitmq();
 await sendVerificationMailConsumer();
 await startOrderTimeoutQueueConsumer();
 
-app.listen(config.PORT, () => {
+server.listen(config.PORT, () => {
   console.log(`Server running on http://localhost:${config.PORT}`);
 });

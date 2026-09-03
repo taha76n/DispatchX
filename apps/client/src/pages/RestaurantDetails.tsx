@@ -47,7 +47,7 @@ interface MenuItemData {
 
 type CartState = Record<string, number>;
 
-const formatPrice = (paisa: number) => `Rs. ${paisa.toFixed(2)}`;
+const formatPrice = (paisa: number) => `Rs. ${(paisa / 100).toFixed(2)}`;
 
 const RestaurantDetail = () => {
   const params = useParams();

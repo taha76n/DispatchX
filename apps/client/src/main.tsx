@@ -7,6 +7,7 @@ import { theme } from "./theme.ts";
 import { AuthProvider } from "./context/AuthContext.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { SelectedRestaurantProvider } from "./context/SelectedRestaurantContext.tsx";
+import { SocketProvider } from "./context/SocketContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -14,9 +15,11 @@ createRoot(document.getElementById("root")!).render(
       <CssBaseline />
       <BrowserRouter>
         <AuthProvider>
-          <SelectedRestaurantProvider>
-            <App />
-          </SelectedRestaurantProvider>
+          <SocketProvider>
+            <SelectedRestaurantProvider>
+              <App />
+            </SelectedRestaurantProvider>
+          </SocketProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

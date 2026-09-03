@@ -15,6 +15,7 @@ import {
   TRANSITION_ACTORS,
 } from "@dispatchx/shared";
 import { publishToOrderTimeoutDelayQueue } from "../../configs/rabbitmq.js";
+import { io } from "../../app.js";
 
 interface IncomingItem {
   menuItemId: string;
@@ -203,7 +204,10 @@ const updateOrderStatus = async (
   }
 
   order.status = newStatus;
+
   await order.save();
+  const roomName = `order:${orderId}`
+  io.to(roomName).emit("orderStatusUpdated",{orderId: order._id, status: order.status, order})
   return order;
 };
 
@@ -217,10 +221,13 @@ const autoRejectOrder = async (orderId: string) => {
   if (!canTransition(order.status, "timed_out")) {
     return;
   }
-
+  
   order.status = "timed_out";
   order.timedOutAt = new Date();
   order.save();
+
+  const roomName = `order:${orderId}`
+  io.to(roomName).emit("orderStatusUpdated",{orderId: order._id, status: order.status, order})
 };
 
 export const orderService = {

@@ -102,7 +102,7 @@ export const connectRabbitmq = async () => {
     arguments: {
       "x-dead-letter-exchange": "order-timeout-exchange",
       "x-dead-letter-routing-key": "order-timeout",
-      "x-message-ttl": 10000,
+      "x-message-ttl": 60000,
     },
   });
 
@@ -290,7 +290,7 @@ export const publishToOrderTimeoutDelayQueue = async (message: OrderTimeoutMsg) 
     arguments: {
       "x-dead-letter-exchange": "order-timeout-exchange",
       "x-dead-letter-routing-key": "order-timeout",
-      "x-message-ttl": 10000,
+      "x-message-ttl": 60000,
     },
   });
 
