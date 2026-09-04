@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@dispatchx/shared": "workspace:*",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@types/cors": "^2.8.19",
     "amqplib": "^2.0.1",
     "bcryptjs": "^3.0.3",

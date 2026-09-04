@@ -14,6 +14,8 @@ import { logger } from "./shared/utils/logger.js";
 import { socketAuthMiddleware } from "./shared/middlewares/socketAuth.middleware.js";
 import { Restaurant } from "./modules/restaurants/restaurant.model.js";
 import { Order } from "./modules/orders/order.model.js";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { pubClient, subClient } from "./configs/redis.js";
 
 const app = express();
 export const server = createServer(app);
@@ -60,6 +62,10 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+export const attachRedisAdapter = async () => {
+  io.adapter(createAdapter(pubClient, subClient));
+};
 
 app.use(
   cors({

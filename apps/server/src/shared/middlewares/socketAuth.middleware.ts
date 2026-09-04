@@ -15,9 +15,7 @@ export const socketAuthMiddleware = (
     if (!cookieHeader) {
       throw new UnauthorizedError("Authentication token missing. Please login.");
     }
-    
-    // const cookies = cookie.parse(cookieHeader);
-    // const accessToken = cookies.accessToken;
+  
 
     const accessToken = cookieHeader
       .split(';')
