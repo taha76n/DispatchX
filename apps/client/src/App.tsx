@@ -12,6 +12,7 @@ import RestaurantDashboard from "./pages/RestaurantDashboard";
 import MyOrders from "./pages/MyOrders";
 import RestaurantOrders from "./pages/RestaurantOrders";
 import Navbar from "./components/Navbar";
+import CreateRiderProfile from "./pages/CreateRiderProfile";
 
 const App = () => {
   return (
@@ -75,6 +76,22 @@ const App = () => {
           element={
             <ProtectedRoute allowedRoles={["customer"]}>
               <MyOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/rider/create"
+          element={
+            <ProtectedRoute allowedRoles={["rider"]}>
+              <CreateRiderProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/rider/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["rider"]}>
+              <RiderDashboard />
             </ProtectedRoute>
           }
         />

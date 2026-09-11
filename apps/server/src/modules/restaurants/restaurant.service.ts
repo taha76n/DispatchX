@@ -121,11 +121,32 @@ const getMyRestaurants = async (userId: string) => {
   return restaurants;
 };
 
+const getNearbyRestaurants = async (
+  longitude: number,
+  latitude: number,
+  maxDistanceMeters: number = 5000
+) => {
+  const restaurants = await Restaurant.find({
+    "address.location": {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
+        $maxDistance: maxDistanceMeters,
+      },
+    },
+  });
+
+  return restaurants;
+};
+
 export const restaurantService = {
   createRestaurant,
   getRestaurantById,
   getAllRestaurants,
   updateRestaurantDetails,
   deleteRestaurantById,
-  getMyRestaurants
+  getMyRestaurants,
+  getNearbyRestaurants,
 };

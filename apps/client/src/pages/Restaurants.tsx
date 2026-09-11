@@ -42,7 +42,29 @@ const Restaurants = () => {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage("Something went Wwrong. Please try again");
+        setErrorMessage("Something went Wrong. Please try again");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNearbyRestaurants = async (long: number, lat: number) => {
+    try {
+      setLoading(true)
+      setErrorMessage("")
+      const { restaurants } = await api.get("/restaurant/nearbyrestaurants", {
+        params: {
+          longitude: long,
+          latitude: lat,
+        },
+      });
+      setRestaurants(restaurants);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Something went Wrong. Please try again");
       }
     } finally {
       setLoading(false);
@@ -50,7 +72,14 @@ const Restaurants = () => {
   };
 
   useEffect(() => {
-    fetchAllRestaurants();
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        fetchNearbyRestaurants(pos.coords.longitude, pos.coords.latitude);
+      },
+      () => {
+        fetchAllRestaurants();
+      }
+    );
   }, []);
 
   if (loading) {

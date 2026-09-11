@@ -7,8 +7,11 @@ export const redisClient = createClient({
 });
 
 redisClient.on("error", (err) => {
-  logger.error(err.message, "Redis client error");
-});
+  logger.error({
+    message: 'Redis client error',
+    error: err.message,
+    stack: err.stack,
+  });});
 
 redisClient.on("connect", () => {
   logger.info("Redis connected");
@@ -16,6 +19,8 @@ redisClient.on("connect", () => {
 
 export const pubClient = redisClient.duplicate();
 export const subClient = redisClient.duplicate();
+
+
 
 export async function connectRedis() {
   await redisClient.connect();

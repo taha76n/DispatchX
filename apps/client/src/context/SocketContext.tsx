@@ -3,10 +3,12 @@ import { io, Socket } from "socket.io-client";
 import { useAuthData } from "./AuthContext";
 
 
-const params = new URLSearchParams(window.location.search);
-const port = params.get("port") ?? "4000";
-const SOCKET_URL = `http://localhost:${port}`;
-// const SOCKET_URL = "http://localhost:4000";
+// const params = new URLSearchParams(window.location.search);
+// const port = params.get("port") ?? "4000";
+// const SOCKET_URL = `http://localhost:${port}`;
+
+
+const SOCKET_URL = "http://localhost:4000";
 
 interface SocketContextType {
   socketRef: React.RefObject<Socket | null>;

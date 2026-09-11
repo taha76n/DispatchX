@@ -9,6 +9,7 @@ router.post("/create", authMiddleware, idempotencyMiddleware, restaurantControll
 router.post("/update", authMiddleware, idempotencyMiddleware, restaurantController.updateRestaurantDetails);
 router.get("/all", restaurantController.getAllRestaurants);
 router.get("/mine", authMiddleware, restaurantController.getMyRestaurants);
+router.get("/nearbyRestaurants", authMiddleware, restaurantController.getNearbyRestaurants);
 router.get("/:restaurantId", authMiddleware, restaurantController.getRestaurantById);
 router.delete("/:restaurantId", authMiddleware, restaurantController.deleteRestaurantById);
 

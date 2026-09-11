@@ -8,6 +8,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import restaurantRoutes from "./modules/restaurants/restaurant.routes.js";
 import menuItemRoutes from "./modules/restaurants/menuItem.routes.js";
 import orderRoutes from "./modules/orders/order.routes.js";
+import riderRoutes from "./modules/dispatch/rider.routes.js";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { logger } from "./shared/utils/logger.js";
@@ -96,6 +97,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/restaurant", restaurantRoutes);
 app.use("/api/v1/menu", menuItemRoutes);
 app.use("/api/v1/order", orderRoutes);
+app.use("/api/v1/rider", riderRoutes);
 
 app.use(errorHandler);
 

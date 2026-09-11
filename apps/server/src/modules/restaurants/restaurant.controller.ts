@@ -217,28 +217,59 @@ const deleteRestaurantById = async (
 
 const getMyRestaurants = async (req: Request, res: Response) => {
   const userId = req._id;
-  const requesterRole = req.role
+  const requesterRole = req.role;
 
   if (requesterRole !== "restaurant") {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message: "You should be a restaurant owner to perform this action",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "You should be a restaurant owner to perform this action",
+    });
   }
   if (!userId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "You should be login to perform this action",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "You should be login to perform this action",
+    });
   }
 
-  const restaurants = await restaurantService.getMyRestaurants(userId)
+  const restaurants = await restaurantService.getMyRestaurants(userId);
 
-  return res.status(200).json({success: true, message: "Restaurants fetched successfully", restaurants})
+  return res.status(200).json({
+    success: true,
+    message: "Restaurants fetched successfully",
+    restaurants,
+  });
+};
+
+const getNearbyRestaurants = async (req: Request, res: Response) => {
+  const longitude = req.query.longitude;
+  const latitude = req.query.latitude;
+
+  if (!longitude || !latitude) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Longitude or latitude is missing" });
+  }
+
+  const parsedLongitude = parseFloat(longitude as string);
+  const parsedLatitude = parseFloat(latitude as string);
+
+  if (isNaN(parsedLongitude) || isNaN(parsedLatitude)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Longitude or latitude is invalid" });
+  }
+
+  const restaurants = await restaurantService.getNearbyRestaurants(
+    parsedLongitude,
+    parsedLatitude
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Near by restaurants fetched successfully",
+    restaurants: restaurants,
+  });
 };
 
 export const restaurantController = {
@@ -247,5 +278,6 @@ export const restaurantController = {
   getAllRestaurants,
   updateRestaurantDetails,
   deleteRestaurantById,
-  getMyRestaurants
+  getMyRestaurants,
+  getNearbyRestaurants,
 };
