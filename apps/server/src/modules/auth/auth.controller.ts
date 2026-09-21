@@ -212,7 +212,7 @@ const rotateRefreshToken = async (req: Request, res: Response) => {
       });
   }
 
-  const {newAccessToken, newRefreshToken, newRefreshTokenDocument} = await authService.rotateRefreshToken(refreshToken);
+  const {newAccessToken, newRefreshToken} = await authService.rotateRefreshToken(refreshToken);
 
   return res
   .cookie("accessToken", newAccessToken, {
@@ -228,7 +228,7 @@ const rotateRefreshToken = async (req: Request, res: Response) => {
     maxAge: 7 * 24 * 60 * 60 * 1000
   })
   .status(200)
-  .json({ success: true, message: "Refresh Token is rotated successfully", newAccessToken, newRefreshToken, newRefreshTokenDocument });
+  .json({ success: true, message: "Refresh Token is rotated successfully", newAccessToken, newRefreshToken });
 };
 
 export const authController = {

@@ -1,7 +1,6 @@
 import { OrderStatus } from "@dispatchx/shared";
 import mongoose, { Schema, Types } from "mongoose";
 
-
 interface OrderItem {
   menuItemId: Types.ObjectId;
   itemName: string;
@@ -15,13 +14,17 @@ interface OrderDocument {
   items: OrderItem[];
   totalPrice: number;
   status: OrderStatus;
+  triedRiderIds?: string[];
+  riderId?: string;
   placedAt: Date;
   acceptedAt?: Date;
+  riderAssignedAt?: Date;
   preparingAt?: Date;
   outForDeliveryAt?: Date;
   deliveredAt?: Date;
   cancelledAt?: Date;
   timedOutAt?: Date;
+  noRiderFoundAt?: Date;
 }
 
 const orderItemSchema = new Schema<OrderItem>(
@@ -61,13 +64,22 @@ const orderSchema = new Schema<OrderDocument>(
         "placed",
         "accepted",
         "preparing",
+        "rider_assigned",
         "out_for_delivery",
         "delivered",
         "cancelled_by_customer",
         "cancelled_by_restaurant",
-        "timed_out"
+        "timed_out",
+        "no_rider_found",
       ],
       default: "placed",
+    },
+    triedRiderIds: {
+      type: [String],
+      default: [],
+    },
+    riderId: {
+      type: String,
     },
     placedAt: {
       type: Date,
@@ -90,6 +102,12 @@ const orderSchema = new Schema<OrderDocument>(
       type: Date,
     },
     timedOutAt: {
+      type: Date,
+    },
+    noRiderFoundAt: {
+      type: Date,
+    },
+    riderAssignedAt: {
       type: Date,
     },
   },

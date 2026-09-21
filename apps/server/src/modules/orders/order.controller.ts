@@ -56,21 +56,17 @@ const getOrderById = async (req: Request<OrderIdParams>, res: Response) => {
   const { orderId } = req.params;
 
   if (!userId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "You should be login to perform this action",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "You should be login to perform this action",
+    });
   }
 
   if (!requesterRole) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "You should be login to perform this action",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "You should be login to perform this action",
+    });
   }
 
   if (!orderId || !Types.ObjectId.isValid(orderId)) {
@@ -124,21 +120,17 @@ const updateOrderStatus = async (
   const { status } = req.body;
 
   if (!userId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "You should be login to perform this action",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "You should be login to perform this action",
+    });
   }
 
   if (!requesterRole) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "You should be login to perform this action",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "You should be login to perform this action",
+    });
   }
 
   if (!orderId || !Types.ObjectId.isValid(orderId)) {
@@ -165,11 +157,59 @@ const updateOrderStatus = async (
   });
 };
 
+const acceptOrderOffer = async (req: Request<OrderIdParams>, res: Response) => {
+  const userId = req._id;
+  const requesterRole = req.role;
+  const { orderId } = req.params;
+
+  if (requesterRole !== "rider") {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Only rider can accept an order offer",
+      });
+  }
+
+  await orderService.acceptOrderOffer(userId, orderId);
+
+  return res
+    .status(200)
+    .json({
+      success: true,
+      message: "Order offer accepted by rider successfully",
+    });
+};
+const declineOrderOffer = async (
+  req: Request<OrderIdParams>,
+  res: Response
+) => {
+  const userId = req._id;
+  const requesterRole = req.role;
+  const { orderId } = req.params;
+
+  if (requesterRole !== "rider") {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Only rider can decline an order offer",
+      });
+  }
+
+  await orderService.declineOrderOffer(userId, orderId);
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Order offer declined by rider" });
+};
+
 export const orderController = {
   createOrder,
   getOrderById,
   getMyOrders,
   getRestaurantOrders,
   updateOrderStatus,
-  
+  acceptOrderOffer,
+  declineOrderOffer,
 };

@@ -24,7 +24,7 @@ const riderSchema = new Schema<RiderDocument>(
     },
     ordersCompleted: {
       type: Number,
-      default: 0
+      default: 0,
     },
     vehicleInfo: {
       numberPlate: { type: String, required: true },

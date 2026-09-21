@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import type { HealthStatus } from "@dispatchx/shared";
+import { TERMINAL_ORDER_STATUSES, type HealthStatus } from "@dispatchx/shared";
 import { errorHandler } from "./shared/middlewares/errorHandler.middleware.js";
 import { requestLogger } from "./shared/middlewares/reqLogger.middleware.js";
 import authRoutes from "./modules/auth/auth.routes.js";
@@ -30,8 +30,53 @@ export const io = new Server(server, {
 
 io.use(socketAuthMiddleware);
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   logger.info(`User Connected: ${socket.id}`);
+
+  const user = socket.data.user;
+
+  try {
+    if (user.role === "rider") {
+      socket.join(`rider:${socket.data.user._id}`);
+
+      // A rider can have at most one active delivery at a time —
+      // join that order's room too, so status pushes reach them
+      // even if they're not specifically viewing it.
+      const activeDelivery = await Order.findOne({
+        riderId: user._id,
+        status: { $nin: TERMINAL_ORDER_STATUSES },
+      });
+      if (activeDelivery) {
+        socket.join(`order:${activeDelivery._id}`);
+      }
+    }
+
+    if (user.role === "customer") {
+      const activeOrders = await Order.find({
+        customerId: user._id,
+        status: { $nin: TERMINAL_ORDER_STATUSES },
+      });
+      activeOrders.forEach((order) => {
+        socket.join(`order:${order._id}`);
+      });
+    }
+
+    if (user.role === "restaurant") {
+      const myRestaurants = await Restaurant.find({ ownerId: user._id });
+      const restaurantIds = myRestaurants.map((r) => r._id);
+
+      const activeOrders = await Order.find({
+        restaurantId: { $in: restaurantIds },
+        status: { $nin: TERMINAL_ORDER_STATUSES },
+      });
+      activeOrders.forEach((order) => {
+        socket.join(`order:${order._id}`);
+      });
+    }
+  } catch (error) {
+    logger.error("Failed to auto-join order rooms on connect");
+    logger.error(error);
+  }
 
   socket.on("disconnect", () => {
     logger.info(`User Disconnected: ${socket.id}`);

@@ -1,17 +1,20 @@
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuthData } from "./AuthContext";
-
 
 // const params = new URLSearchParams(window.location.search);
 // const port = params.get("port") ?? "4000";
 // const SOCKET_URL = `http://localhost:${port}`;
 
-
 const SOCKET_URL = "http://localhost:4000";
 
 interface SocketContextType {
-  socketRef: React.RefObject<Socket | null>;
+  socket: Socket | null;
 }
 const SocketContext = createContext<SocketContextType | null>(null);
 
@@ -22,24 +25,30 @@ interface ProviderProps {
 export const SocketProvider = ({ children }: ProviderProps) => {
   const { user } = useAuthData();
 
-  const socketRef = useRef<Socket | null>(null);
-
+  const [socket, setSocket] = useState<Socket | null>(null);
   useEffect(() => {
-    if (user) {
-      if (!socketRef.current) {
-        socketRef.current = io(SOCKET_URL, { withCredentials: true });
-      }
+    if (!user) {
+      setSocket(null);
+      return;
     }
+
+    const s = io(SOCKET_URL, { withCredentials: true });
+    setSocket(s);
+
     return () => {
-      socketRef.current?.disconnect();
-      socketRef.current = null;
+      s.disconnect();
+      setSocket(null);
     };
   }, [user]);
   return (
-    <SocketContext.Provider value={{socketRef}}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={{ socket }}>
+      {children}
+    </SocketContext.Provider>
   );
 };
 
 export const useSocketData = () => {
-  return useContext(SocketContext);
+  const ctx = useContext(SocketContext);
+  if (!ctx) throw new Error("useSocketData must be used inside SocketProvider");
+  return ctx;
 };

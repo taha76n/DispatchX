@@ -15,6 +15,7 @@ export type OrderStatus =
   | "placed"
   | "accepted"
   | "preparing"
+  |"rider_assigned"
   | "out_for_delivery"
   | "delivered"
   | "cancelled_by_customer"
@@ -25,6 +26,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   placed: "Placed",
   accepted: "Accepted",
   preparing: "Preparing",
+  rider_assigned: "Rider assigned",
   out_for_delivery: "Out for delivery",
   delivered: "Delivered",
   cancelled_by_customer: "Cancelled by you",
@@ -36,6 +38,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   placed: colors.fog,
   accepted: colors.route,
   preparing: colors.ember,
+  rider_assigned: "#B794F4",
   out_for_delivery: colors.route,
   delivered: "#4CAF50",
   cancelled_by_customer: "#E5484D",
@@ -251,7 +254,7 @@ const OrderCard = ({
         </Typography>
       </Stack>
 
-      {status === "placed" && (
+      {/*{status === "placed" && (
         <>
           <Divider sx={{ borderColor: "rgba(245,243,238,0.08)", my: 1.5 }} />
           <Button
@@ -268,7 +271,7 @@ const OrderCard = ({
             {cancellingOrderId === order._id ? "Cancelling..." : "Cancel order"}
           </Button>
         </>
-      )}
+      )}*/}
 
       {renderActions() && (
         <>

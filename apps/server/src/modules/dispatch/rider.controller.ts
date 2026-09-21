@@ -2,13 +2,17 @@ import { Request, Response } from "express";
 import { riderService } from "./rider.service.js";
 import { logger } from "../../shared/utils/logger.js";
 
+
 const createRiderProfile = async (req: Request, res: Response) => {
   const riderId = req._id;
   const requesterRole = req.role;
   const { vehicleInfo } = req.body;
 
-  
-  if (!vehicleInfo.numberPlate || !vehicleInfo.vehicleType || !vehicleInfo.vehicleModelName) {
+  if (
+    !vehicleInfo.numberPlate ||
+    !vehicleInfo.vehicleType ||
+    !vehicleInfo.vehicleModelName
+  ) {
     return res.status(400).json({
       success: false,
       message: "Invalid vehicle info format",
@@ -28,8 +32,11 @@ const createRiderProfile = async (req: Request, res: Response) => {
       message: "Requester role should be rider only",
     });
   }
-  
-  const riderProfile = await riderService.createRiderProfile(riderId, vehicleInfo);
+
+  const riderProfile = await riderService.createRiderProfile(
+    riderId,
+    vehicleInfo
+  );
 
   return res.status(201).json({
     success: true,
@@ -56,13 +63,13 @@ const getRiderProfile = async (req: Request, res: Response) => {
     });
   }
 
-  const riderProfile = await riderService.getRiderProfile(riderId)
+  const riderProfile = await riderService.getRiderProfile(riderId);
   return res.status(200).json({
     success: true,
     message: "Rider profile fetched successfully",
     riderProfile: riderProfile,
   });
-}
+};
 
 const emitRiderLocation = async (req: Request, res: Response) => {
   const riderId = req._id;
@@ -143,9 +150,22 @@ const updateRiderStatus = async (req: Request, res: Response) => {
   });
 };
 
+const getCurrentDelivery = async (req: Request, res: Response) => {
+  const riderId = req._id;
+
+ const order = await riderService.getCurrentDelivery(riderId)
+
+  return res.status(200).json({
+    success: true,
+    message: "Current delivery fetched successfully",
+    order,
+  });
+};
+
 export const riderController = {
   createRiderProfile,
   emitRiderLocation,
   updateRiderStatus,
-  getRiderProfile
+  getRiderProfile,
+  getCurrentDelivery,
 };

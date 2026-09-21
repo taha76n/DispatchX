@@ -7,30 +7,37 @@ interface OrderStatusUpdatepayload {
 }
 
 export const useOrderTracking = (orderId: string) => {
-  const { socketRef } = useSocketData();
+  const { socket } = useSocketData();
   const [orderStatus, setOrderStatus] = useState<string | "">("");
 
   useEffect(() => {
     if (!orderId) {
       return;
     }
-    if (!socketRef.current) {
-      return;
-    }
+
+    if (!socket) return;
 
     const handleStatusUpdate = (payload: OrderStatusUpdatepayload) => {
       if (payload.orderId === orderId) {
         setOrderStatus(payload.status);
+        console.log(payload);
       }
     };
 
-    socketRef.current.emit("joinOrderRoom", orderId);
-    socketRef.current.on("orderStatusUpdated", handleStatusUpdate);
+    // Re-join the room every time the socket connects.
+    // Fires on the initial connection AND on every reconnect.
+    const joinRoom = () => socket.emit("joinOrderRoom", orderId);
+
+    socket.on("connect", joinRoom);
+    socket.on("orderStatusUpdated", handleStatusUpdate);
+
+    if (socket.connected) joinRoom();
 
     return () => {
-      socketRef.current?.off("orderStatusUpdated", handleStatusUpdate);
+      socket.off("connect", joinRoom);
+      socket.off("orderStatusUpdated", handleStatusUpdate);
     };
-  }, [orderId, socketRef]);
+  }, [orderId, socket]);
 
   return orderStatus;
 };

@@ -8,6 +8,7 @@ import { AuthProvider } from "./context/AuthContext.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { SelectedRestaurantProvider } from "./context/SelectedRestaurantContext.tsx";
 import { SocketProvider } from "./context/SocketContext.tsx";
+import { NotificationProvider } from "./context/NotificationContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -16,9 +17,11 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <AuthProvider>
           <SocketProvider>
-            <SelectedRestaurantProvider>
-              <App />
-            </SelectedRestaurantProvider>
+            <NotificationProvider>
+              <SelectedRestaurantProvider>
+                <App />
+              </SelectedRestaurantProvider>
+            </NotificationProvider>
           </SocketProvider>
         </AuthProvider>
       </BrowserRouter>

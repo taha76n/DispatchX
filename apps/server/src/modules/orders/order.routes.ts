@@ -9,6 +9,8 @@ router.post("/create", authMiddleware, idempotencyMiddleware, orderController.cr
 router.get("/mine", authMiddleware, orderController.getMyOrders);
 router.get("/restaurant/:restaurantId", authMiddleware, orderController.getRestaurantOrders);
 router.get("/:orderId", authMiddleware, orderController.getOrderById);
+router.post("/:orderId/accept-offer", authMiddleware, orderController.acceptOrderOffer);
+router.post("/:orderId/decline-offer", authMiddleware, orderController.declineOrderOffer);
 router.patch("/:orderId/status", authMiddleware, orderController.updateOrderStatus);
 
 export default router;

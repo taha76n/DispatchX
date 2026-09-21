@@ -20,7 +20,7 @@ import { Role } from "@dispatchx/shared";
 import { RefreshToken } from "./refreshToken.model.js";
 import { logger } from "../../shared/utils/logger.js";
 import { verificationEmailTemplate } from "../../shared/utils/emailTemplates.js";
-import { publishToQueue } from "../../configs/rabbitmq.js";
+import { publishToQueue } from "./verificationEmail.consumer.js";
 
 const Register = async (
   name: string,

@@ -9,10 +9,16 @@ import {
 } from "@mui/material";
 import CircleIcon from "@mui/icons-material/Circle";
 import Loading from "../components/Loading";
-import { useAuthData } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { ApiError } from "../lib/apiError";
+import { useSocketData } from "../context/SocketContext";
+import DeliveryOfferModal, {
+  type DeliveryOffer,
+} from "../components/DeliveryOfferModal";
+import CurrentDeliveryCard, {
+  type CurrentDeliveryData,
+} from "../components/CurrentDeliveryCard";
 
 const colors = {
   ink: "#14171C",
@@ -24,6 +30,7 @@ const colors = {
 };
 
 export interface RiderProfileData {
+  name: string;
   vehicleType: "Car" | "Motorbike";
   numberPlate: string;
   vehicleModelName: string;
@@ -32,77 +39,153 @@ export interface RiderProfileData {
 }
 
 const RiderDashboard = () => {
-  const { loading } = useAuthData();
+  const { socket } = useSocketData();
 
   const [profile, setProfile] = useState<RiderProfileData | null>(null);
-  const [error, setError] = useState<string>("");
-  const [togglingOnline, setTogglingOnline] = useState<boolean>(false);
-  // const [lastLocationSentAt, setLastLocationSentAt] = useState<string | null>(
-  //   null
-  // );
-  // const [locationError, setLocationError] = useState<string>("");
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [togglingOnline, setTogglingOnline] = useState(false);
+
+  const [offer, setOffer] = useState<DeliveryOffer | null>(null);
+  const [respondingToOffer, setRespondingToOffer] = useState(false);
+
+  // add alongside your other state
+  const [currentDelivery, setCurrentDelivery] =
+    useState<CurrentDeliveryData | null>(null);
+  const [advancingDelivery, setAdvancingDelivery] = useState(false);
+
+  const fetchCurrentDelivery = async () => {
+    try {
+      const { order } = await api.get("/rider/current-delivery");
+      setCurrentDelivery(order);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setCurrentDelivery(null);   
+        return;                      
+      }
+      setError(err instanceof ApiError ? err.message : "Something went wrong");
+    }
+  };
 
   useEffect(() => {
-    fetchRider();
+    fetchCurrentDelivery();
   }, []);
 
-  const onToggleOnline = async () => {
+  // re-fetch whenever an offer is accepted, and whenever the order's
+  // live status changes (delivered clears it, etc.)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      fetchCurrentDelivery();
+    };
+
+    socket.on("orderStatusUpdated", handleUpdate);
+    return () => {
+      socket?.off("orderStatusUpdated", handleUpdate);
+    };
+  }, [socket]);
+
+  const advanceDelivery = async () => {
+    if (!currentDelivery) return;
     try {
-      setError("");
-      const {newStatus} = await api.patch("/rider/status");
-      setTogglingOnline(!togglingOnline);
-      setProfile((prev)=> (prev? {...prev, isOnline: newStatus}: prev))
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setError(error.message);
-      } else {
-        setError("Something Went Wrong");
-      }
-    }finally{
-      setTogglingOnline(false)
+      setAdvancingDelivery(true);
+      const nextStatus =
+        currentDelivery.status === "rider_assigned"
+          ? "out_for_delivery"
+          : "delivered";
+      await api.patch(`/order/${currentDelivery._id}/status`, {
+        status: nextStatus,
+      });
+      await fetchCurrentDelivery();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong");
+    } finally {
+      setAdvancingDelivery(false);
     }
   };
 
   const fetchRider = async () => {
     try {
       setError("");
+      setPageLoading(true);
       const { riderProfile } = await api.get("/rider/profile");
-      console.log(riderProfile);
-      
       setProfile(riderProfile);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setError(error.message);
-      } else {
-        setError("Something Went Wrong");
-      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong");
+    } finally {
+      setPageLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!profile?.isOnline) {
-      return;
-    }
+    fetchRider();
+  }, []);
 
-    const timeInterval = setInterval(() => {
+  // Listen for incoming delivery offers over the socket.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleOffer = (payload: DeliveryOffer) => {
+      setOffer(payload);
+    };
+
+    socket.on("deliveryOffer", handleOffer);
+
+    return () => {
+      socket?.off("deliveryOffer", handleOffer);
+    };
+  }, [socket]);
+
+  const onToggleOnline = async () => {
+    try {
+      setError("");
+      setTogglingOnline(true);
+      const { newStatus } = await api.patch("/rider/status");
+      setProfile((prev) => (prev ? { ...prev, isOnline: newStatus } : prev));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong");
+    } finally {
+      setTogglingOnline(false);
+    }
+  };
+
+  // Background location ping loop, active only while online.
+  useEffect(() => {
+    if (!profile?.isOnline) return;
+
+    const tick = setInterval(() => {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
-          await api.post("rider/location", {
+          await api.post("/rider/location", {
             longitude: pos.coords.longitude,
             latitude: pos.coords.latitude,
           });
-        } catch (error) {
-          console.error("Failed to send location:", error);
+        } catch (err) {
+          console.error("Failed to send location:", err);
         }
       });
     }, 10000);
 
-    return () => {
-      clearInterval(timeInterval);
-    };
+    return () => clearInterval(tick);
   }, [profile?.isOnline]);
 
-  if (loading) return <Loading />;
+  const respondToOffer = async (accept: boolean) => {
+    if (!offer) return;
+    try {
+      setRespondingToOffer(true);
+      const path = accept ? "accept-offer" : "decline-offer";
+      await api.post(`/order/${offer.orderId}/${path}`);
+      if (accept) await fetchCurrentDelivery();  // don't depend on socket
+    } catch (err) {
+      console.error("Failed to respond to offer:", err);
+    } finally {
+      setRespondingToOffer(false);
+      setOffer(null);
+    }
+  };
+
+  if (pageLoading) return <Loading />;
 
   return (
     <Box sx={{ bgcolor: colors.ink, minHeight: "100vh", color: colors.paper }}>
@@ -124,10 +207,20 @@ const RiderDashboard = () => {
             fontWeight: 600,
             fontSize: { xs: 26, md: 30 },
             letterSpacing: -0.5,
+            mb: 0.5,
+          }}
+        >
+          {profile ? `Welcome back, ${profile.name}` : "You're on the road"}
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: '"Inter", sans-serif',
+            fontSize: 13,
+            color: colors.fog,
             mb: 4,
           }}
         >
-          You're on the road
+          Go online when you're ready to ride
         </Typography>
 
         {error && (
@@ -148,16 +241,14 @@ const RiderDashboard = () => {
               }}
             >
               <Stack
-                sx={{
-                  direction: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                direction="row"
+                sx={{ justifyContent: "space-between", alignItems: "center" }}
               >
                 <Box>
                   <Stack
+                    direction="row"
                     spacing={1}
-                    sx={{ mb: 0.5, alignItems: "center", direction: "row" }}
+                    sx={{ mb: 0.5, alignItems: "center" }}
                   >
                     <CircleIcon
                       sx={{
@@ -202,41 +293,15 @@ const RiderDashboard = () => {
                   }}
                 />
               </Stack>
-
-              {profile.isOnline && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    pt: 2,
-                    borderTop: "1px solid rgba(245,243,238,0.08)",
-                  }}
-                >
-                  {/* {locationError ? (
-                    <Typography
-                      sx={{
-                        fontFamily: '"IBM Plex Mono", monospace',
-                        fontSize: 12,
-                        color: "#E5484D",
-                      }}
-                    >
-                      {locationError}
-                    </Typography> */}
-                  {/* ) : (
-                    <Typography
-                      sx={{
-                        fontFamily: '"IBM Plex Mono", monospace',
-                        fontSize: 12,
-                        color: colors.fog,
-                      }}
-                    >
-                      {lastLocationSentAt
-                        ? `Location last sent at ${lastLocationSentAt}`
-                        : "Sending your location..."}
-                    </Typography>
-                  )} */}
-                </Box>
-              )}
             </Box>
+
+            {currentDelivery && (
+              <CurrentDeliveryCard
+                delivery={currentDelivery}
+                onAdvance={advanceDelivery}
+                advancing={advancingDelivery}
+              />
+            )}
 
             <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
               <Box
@@ -289,18 +354,17 @@ const RiderDashboard = () => {
               >
                 VEHICLE
               </Typography>
-              <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                <Chip
-                  label={profile.vehicleType}
-                  size="small"
-                  sx={{
-                    fontFamily: '"IBM Plex Mono", monospace',
-                    fontSize: 11,
-                    bgcolor: "rgba(232,135,58,0.1)",
-                    color: colors.ember,
-                  }}
-                />
-              </Stack>
+              <Chip
+                label={profile.vehicleType}
+                size="small"
+                sx={{
+                  fontFamily: '"IBM Plex Mono", monospace',
+                  fontSize: 11,
+                  bgcolor: "rgba(232,135,58,0.1)",
+                  color: colors.ember,
+                  mb: 1,
+                }}
+              />
               <Typography
                 sx={{
                   fontFamily: '"Inter", sans-serif',
@@ -324,6 +388,13 @@ const RiderDashboard = () => {
           </>
         )}
       </Container>
+
+      <DeliveryOfferModal
+        offer={offer}
+        onAccept={() => respondToOffer(true)}
+        onDecline={() => respondToOffer(false)}
+        responding={respondingToOffer}
+      />
     </Box>
   );
 };

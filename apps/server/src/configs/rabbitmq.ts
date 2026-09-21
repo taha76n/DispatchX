@@ -1,8 +1,6 @@
 import { connect, type Channel } from "amqplib";
 import { config } from "./index.js";
 import { logger } from "../shared/utils/logger.js";
-import { sendMail } from "../shared/utils/mailer.js";
-import { orderService } from "../modules/orders/order.service.js";
 
 // The single shared channel for this whole process. A "channel" is a
 // lightweight virtual connection that rides on top of one real TCP
@@ -106,6 +104,26 @@ export const connectRabbitmq = async () => {
     },
   });
 
+  await channel.assertExchange("offer-timeout-exchange", "direct", {
+    durable: true,
+  });
+
+  await channel.assertQueue("offer-timeout-queue", { durable: true });
+
+  await channel.bindQueue(
+    "offer-timeout-queue",
+    "offer-timeout-exchange",
+    "offer-timeout"
+  );
+
+  await channel.assertQueue("offer-timeout-delay-queue", {
+    durable: true,
+    arguments: {
+      "x-dead-letter-exchange": "offer-timeout-exchange",
+      "x-dead-letter-routing-key": "offer-timeout",
+      "x-message-ttl": 20000,
+    },
+  });
   logger.info("RabbitMQ connected");
 
   // If the underlying TCP connection breaks (RabbitMQ restarts, network
@@ -120,183 +138,4 @@ export const connectRabbitmq = async () => {
   connection.on("close", () => {
     logger.info("RabbitMQ connection closed");
   });
-};
-
-/**
- * Long-running consumer for verification-email-queue. Call once at
- * startup, right after connectRabbitmq(). Stays active for the life of
- * the process, picking up messages as they arrive.
- */
-export const sendVerificationMailConsumer = async () => {
-  if (!channel) {
-    throw new Error("RabbitMq channel is missing");
-  }
-
-  try {
-    const verificationEmailQueue = "verification-email-queue";
-
-    // Must exactly match the arguments used anywhere else this same
-    // queue name is asserted (see publishToQueue below) — a mismatch
-    // here causes a 406 error that closes the whole channel.
-    await channel.assertQueue(verificationEmailQueue, {
-      durable: true,
-      arguments: {
-        "x-dead-letter-exchange": "dlx",
-        "x-dead-letter-routing-key": "verification-email-failed",
-      },
-    });
-
-    logger.info(
-      `sendVerificationMailConsumer started, ready to consume from ${verificationEmailQueue}`
-    );
-
-    channel.consume(verificationEmailQueue, async (msg) => {
-      if (!msg) return; // null means the consumer was cancelled server-side; nothing to do
-
-      try {
-        const { to, subject, text, html } = JSON.parse(msg.content.toString());
-        await sendMail(to, subject, text, html);
-        logger.info(`Verification email sent to ${to}`);
-
-        // Tell RabbitMQ we successfully processed this message — it's
-        // now safe to permanently remove it from the queue.
-        channel.ack(msg);
-      } catch (error) {
-        logger.error("Failed to send verification email");
-        logger.error(error);
-
-        // requeue:false — don't retry, send straight to the DLQ via
-        // this queue's x-dead-letter-* arguments. We deliberately chose
-        // "no retry" for this pipeline: a bad email address won't fix
-        // itself on a second attempt, so we just park it for inspection.
-        channel.nack(msg, false, false);
-      }
-    });
-  } catch (error) {
-    logger.error("Failed to start verification email consumer");
-    logger.error(error);
-  }
-};
-
-/**
- * Long-running consumer for order-timeout-queue — the REAL queue,
- * reached only after a message survives its wait in
- * order-timeout-delay-queue. Call once at startup.
- */
-export const startOrderTimeoutQueueConsumer = async () => {
-  if (!channel) {
-    throw new Error("RabbitMq channel is missing");
-  }
-
-  try {
-    const orderTimeoutQueue = "order-timeout-queue";
-
-    // No dead-letter arguments here — this queue is the end of the
-    // line for this pipeline, not a step that forwards elsewhere.
-    await channel.assertQueue(orderTimeoutQueue, { durable: true });
-
-    logger.info(
-      `startOrderTimeoutQueueConsumer started, ready to consume from ${orderTimeoutQueue}`
-    );
-
-    channel.consume(orderTimeoutQueue, async (msg) => {
-      if (!msg) return;
-
-      try {
-        const { orderId } = JSON.parse(msg.content.toString());
-
-        // autoRejectOrder itself checks whether the order is still
-        // "placed" before doing anything — if the restaurant already
-        // accepted it in the meantime, this is a safe no-op.
-        await orderService.autoRejectOrder(orderId);
-
-        logger.info(`Timeout check completed for order ${orderId}`);
-        channel.ack(msg);
-      } catch (error) {
-        logger.error("Failed to process order timeout message");
-        logger.error(error);
-
-        // No DLQ for this pipeline (kept simple, matching the
-        // verification-email pipeline's "don't retry forever" choice).
-        // requeue:false means a failed timeout-check message is dropped
-        // rather than looping — acceptable for now since a missed
-        // auto-reject just means the restaurant has to act manually;
-        // it's not data loss in the way a lost email would feel.
-        channel.nack(msg, false, false);
-      }
-    });
-  } catch (error) {
-    logger.error("Failed to start order timeout consumer");
-    logger.error(error);
-  }
-};
-
-interface EmailMsg {
-  to: string;
-  subject: string;
-  text: string;
-  html: string;
-}
-
-/**
- * Publishes an email job onto verification-email-queue. Call this from
- * anywhere that needs to send an email asynchronously (currently: the
- * register flow).
- */
-export const publishToQueue = async (queueName: string, message: EmailMsg) => {
-  if (!channel) {
-    logger.info("RabbitMq Channel is missing");
-    return;
-  }
-
-  // Must match sendVerificationMailConsumer's assertQueue exactly —
-  // see the comment there for why.
-  await channel.assertQueue(queueName, {
-    durable: true,
-    arguments: {
-      "x-dead-letter-exchange": "dlx",
-      "x-dead-letter-routing-key": "verification-email-failed",
-    },
-  });
-
-  channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)), {
-    persistent: true, // survive a RabbitMQ restart while still queued
-  });
-};
-
-interface OrderTimeoutMsg {
-  orderId: string;
-}
-
-/**
- * Publishes a message onto order-timeout-delay-queue. Call this right
- * after a new order is created (orderService.createOrder) — 10 seconds
- * (soon: ~10 minutes) later, the message dead-letters through to
- * order-timeout-queue, where startOrderTimeoutQueueConsumer checks
- * whether the restaurant ever responded.
- *
- * This function always targets the one specific delay queue — there's
- * no reason to parameterize the queue name here.
- */
-export const publishToOrderTimeoutDelayQueue = async (message: OrderTimeoutMsg) => {
-  if (!channel) {
-    logger.info("RabbitMq Channel is missing");
-    return;
-  }
-
-  // Must match the assertion in connectRabbitmq exactly.
-  await channel.assertQueue("order-timeout-delay-queue", {
-    durable: true,
-    arguments: {
-      "x-dead-letter-exchange": "order-timeout-exchange",
-      "x-dead-letter-routing-key": "order-timeout",
-      "x-message-ttl": 60000,
-    },
-  });
-
-  channel.sendToQueue(
-    "order-timeout-delay-queue",
-    Buffer.from(JSON.stringify(message)),
-    { persistent: true }
-  );
 };

@@ -14,8 +14,12 @@ import {
   OrderStatus,
   TRANSITION_ACTORS,
 } from "@dispatchx/shared";
-import { publishToOrderTimeoutDelayQueue } from "../../configs/rabbitmq.js";
 import { io } from "../../app.js";
+import { riderService } from "../dispatch/rider.service.js";
+import { publishToDispatchQueue } from "../dispatch/dispatch.consumer.js";
+import { publishToOrderTimeoutDelayQueue } from "./orderTimeout.consumer.js";
+import { logger } from "../../shared/utils/logger.js";
+import { Rider } from "../dispatch/rider.model.js";
 
 interface IncomingItem {
   menuItemId: string;
@@ -142,12 +146,19 @@ const updateOrderStatus = async (
     throw new NotFoundError("Order not found");
   }
 
+  logger.info(newStatus);
+
   const isCustomer = order.customerId.toString() === requesterId;
   let isRestaurantOwner = false;
+  let isAssignedRider = false;
 
   if (requesterRole === "restaurant") {
     const restaurant = await Restaurant.findById(order.restaurantId);
     isRestaurantOwner = restaurant?.ownerId.toString() === requesterId;
+  }
+
+  if (requesterRole === "rider") {
+    isAssignedRider = order.riderId?.toString() === requesterId;
   }
 
   let actorState: ActorState;
@@ -156,6 +167,8 @@ const updateOrderStatus = async (
     actorState = "customer";
   } else if (isRestaurantOwner) {
     actorState = "restaurant";
+  } else if (isAssignedRider) {
+    actorState = "rider";
   } else {
     actorState = null;
   }
@@ -206,8 +219,28 @@ const updateOrderStatus = async (
   order.status = newStatus;
 
   await order.save();
-  const roomName = `order:${orderId}`
-  io.to(roomName).emit("orderStatusUpdated",{orderId: order._id, status: order.status, order})
+
+  if (newStatus === "delivered" && order.riderId) {
+    try {
+      await Rider.findOneAndUpdate(
+        { userId: order.riderId },
+        { $inc: { ordersCompleted: 1 } }
+      );
+    } catch (error) {
+      logger.error("Failed to increment rider's ordersCompleted");
+      logger.error(error);
+    }
+  }
+
+  if (newStatus === "preparing") {
+    await publishToDispatchQueue({ orderId: order._id.toString() });
+  }
+  const roomName = `order:${orderId}`;
+  io.to(roomName).emit("orderStatusUpdated", {
+    orderId: order._id.toString(),
+    status: order.status,
+    order,
+  });
   return order;
 };
 
@@ -221,13 +254,84 @@ const autoRejectOrder = async (orderId: string) => {
   if (!canTransition(order.status, "timed_out")) {
     return;
   }
-  
+
   order.status = "timed_out";
   order.timedOutAt = new Date();
   order.save();
 
-  const roomName = `order:${orderId}`
-  io.to(roomName).emit("orderStatusUpdated",{orderId: order._id, status: order.status, order})
+  const roomName = `order:${orderId}`;
+  io.to(roomName).emit("orderStatusUpdated", {
+    orderId: order._id.toString(),
+    status: order.status,
+    order,
+  });
+};
+
+const acceptOrderOffer = async (userId: string, orderId: string) => {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    throw new NotFoundError("Order not found");
+  }
+
+  if (order.riderId) {
+    throw new NotFoundError("The delivery has already been assigned");
+  }
+
+  if (!order.triedRiderIds?.includes(userId)) {
+    throw new BadRequestError("This offer was not made to you");
+  }
+
+  if (!canTransition(order.status, "rider_assigned")) {
+    // throw new ForbiddenError(
+    //   `Cannot transition from ${order.status} to ${newStatus}`
+    // );
+    return;
+  }
+
+  order.riderId = userId;
+
+  order.status = "rider_assigned";
+
+  order.riderAssignedAt = new Date();
+
+  await order.save();
+
+  logger.info(order.status);
+
+  io.in(`rider:${userId}`).socketsJoin(`order:${orderId}`);
+
+  const roomName = `order:${orderId}`;
+  io.to(roomName).emit("orderStatusUpdated", {
+    orderId: order._id.toString(),
+    status: order.status,
+    order,
+  });
+};
+
+const declineOrderOffer = async (userId: string, orderId: string) => {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    throw new NotFoundError("Order not found");
+  }
+
+  if (order.riderId) {
+    throw new BadRequestError("The delivery has already been assigned");
+  }
+
+  if (!order.triedRiderIds?.includes(userId)) {
+    throw new BadRequestError("This offer was not made to you");
+  }
+
+  await riderService.tryNextCandidate(orderId);
+
+  const roomName = `order:${orderId}`;
+  io.to(roomName).emit("orderStatusUpdated", {
+    orderId: order._id.toString(),
+    status: order.status,
+    order,
+  });
 };
 
 export const orderService = {
@@ -237,4 +341,6 @@ export const orderService = {
   getOrdersForRestaurant,
   updateOrderStatus,
   autoRejectOrder,
+  acceptOrderOffer,
+  declineOrderOffer,
 };

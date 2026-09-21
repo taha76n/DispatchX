@@ -31,11 +31,21 @@ export type OrderStatus =
   | "placed"
   | "accepted"
   | "preparing"
+  | "rider_assigned"
   | "out_for_delivery"
   | "delivered"
   | "cancelled_by_customer"
   | "cancelled_by_restaurant"
-  | "timed_out";
+  | "timed_out"
+  | "no_rider_found";
+
+export const TERMINAL_ORDER_STATUSES: OrderStatus[] = [
+  "delivered",
+  "cancelled_by_customer",
+  "cancelled_by_restaurant",
+  "timed_out",
+  "no_rider_found",
+];
 
 export interface OrderItem {
   menuItemId: string;
@@ -72,6 +82,19 @@ export interface PreparingOrder {
   placedAt: Date;
   acceptedAt: Date;
   preparingAt: Date;
+}
+
+export interface RiderAssignedOrder {
+  status: "rider_assigned";
+  customerId: string;
+  restaurantId: string;
+  riderId: string;
+  items: OrderItem[];
+  totalPrice: number;
+  placedAt: Date;
+  acceptedAt: Date;
+  preparingAt: Date;
+  riderAssignedAt: Date;
 }
 
 export interface OutForDeliveryOrder {
@@ -130,6 +153,18 @@ export interface TimedOutOrder {
   timedOutAt: Date;
 }
 
+export interface NoRiderFoundOrder {
+  status: "no_rider_found";
+  customerId: string;
+  restaurantId: string;
+  items: OrderItem[];
+  totalPrice: number;
+  placedAt: Date;
+  acceptedAt: Date;
+  preparingAt: Date;
+  noRiderFoundAt: Date;
+}
+
 // The "union": an Order is one of these
 export type Order =
   | PlacedOrder
@@ -139,7 +174,8 @@ export type Order =
   | DeliveredOrder
   | CancelledByCustomerOrder
   | CancelledByRestaurantOrder
-  | TimedOutOrder;
+  | TimedOutOrder
+  | NoRiderFoundOrder;
 
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   placed: [
@@ -149,12 +185,14 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     "timed_out",
   ],
   accepted: ["preparing", "cancelled_by_restaurant"],
-  preparing: ["out_for_delivery"],
+  preparing: ["out_for_delivery", "no_rider_found", "rider_assigned"],
+  rider_assigned: ["out_for_delivery"],
   out_for_delivery: ["delivered"],
   delivered: [],
   cancelled_by_customer: [],
   cancelled_by_restaurant: [],
   timed_out: [],
+  no_rider_found: ["preparing"],
 };
 
 export const canTransition = (from: OrderStatus, to: OrderStatus): boolean => {
@@ -163,16 +201,20 @@ export const canTransition = (from: OrderStatus, to: OrderStatus): boolean => {
 
 export const TRANSITION_ACTORS: Record<
   OrderStatus,
-  "customer" | "restaurant" | "system" | null
+  "customer" | "restaurant" | "system" | "rider" | null
 > = {
   placed: null,
   accepted: "restaurant",
   preparing: "restaurant",
-  out_for_delivery: "restaurant",
-  delivered: "restaurant",
+  rider_assigned: "rider",
+  out_for_delivery: "rider",
+  delivered: "rider",
   cancelled_by_customer: "customer",
   cancelled_by_restaurant: "restaurant",
   timed_out: "system",
+  no_rider_found: "system",
 };
 
-export type ActorState = "customer" | "restaurant" | "system" | null;
+export const OFFER_MAX_ATTEMPTS = 5;
+
+export type ActorState = "customer" | "restaurant" | "system" | "rider" | null;

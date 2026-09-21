@@ -25,6 +25,7 @@ export type OrderStatus =
   | "placed"
   | "accepted"
   | "preparing"
+  | "rider_assigned"
   | "out_for_delivery"
   | "delivered"
   | "cancelled_by_customer"
