@@ -26,10 +26,19 @@ interface IncomingItem {
   quantity: number;
 }
 
+interface DeliveryAddress {
+  text: string;
+  location: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+}
+
 const createOrder = async (
   customerId: Types.ObjectId | string,
   restaurantId: Types.ObjectId | string,
-  incomingItems: IncomingItem[]
+  incomingItems: IncomingItem[],
+  deliveryAddress: DeliveryAddress
 ) => {
   const restaurant = await Restaurant.findById(restaurantId);
 
@@ -81,6 +90,7 @@ const createOrder = async (
     restaurantId,
     items,
     totalPrice,
+    deliveryAddress
   });
 
   const msg = {

@@ -14,6 +14,13 @@ interface OrderDocument {
   items: OrderItem[];
   totalPrice: number;
   status: OrderStatus;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number]; // [longitude, latitude]
+    };
+  };
   triedRiderIds?: string[];
   riderId?: string;
   placedAt: Date;
@@ -74,6 +81,25 @@ const orderSchema = new Schema<OrderDocument>(
       ],
       default: "placed",
     },
+    deliveryAddress: {
+      text: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      location: {
+        type: {
+          type: String,
+          enum: ["Point"],
+          required: true,
+        },
+        coordinates: {
+          type: [Number],
+          required: true,
+        },
+      },
+    },
+
     triedRiderIds: {
       type: [String],
       default: [],

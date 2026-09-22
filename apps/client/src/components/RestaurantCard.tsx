@@ -22,8 +22,7 @@ interface RestaurantCardProps {
   description: string;
   isOpen: boolean;
   keywords: string[];
-  navigateToRestaurantDetails: (_id: string) => void
-
+  navigateToRestaurantDetails: (_id: string) => void;
 }
 const RestaurantCard = ({
   _id,
@@ -31,7 +30,7 @@ const RestaurantCard = ({
   description,
   isOpen,
   keywords,
-  navigateToRestaurantDetails
+  navigateToRestaurantDetails,
 }: RestaurantCardProps) => (
   <Card
     sx={{
@@ -41,7 +40,10 @@ const RestaurantCard = ({
       boxShadow: "none",
     }}
   >
-    <CardActionArea onClick={() => navigateToRestaurantDetails(_id)} sx={{ height: "100%" }}>
+    <CardActionArea
+      onClick={() => navigateToRestaurantDetails(_id)}
+      sx={{ height: "100%" }}
+    >
       <Box
         sx={{
           height: 140,
@@ -65,10 +67,12 @@ const RestaurantCard = ({
 
       <CardContent sx={{ p: 2.5 }}>
         <Stack
-          direction="row"
-          justifycontent="space-between"
-          alignitems="flex-start"
-          sx={{ mb: 1 }}
+          sx={{
+            mb: 1,
+            direction: "row",
+            justifycontent: "space-between",
+            alignitems: "flex-start",
+          }}
         >
           <Typography
             sx={{
@@ -109,7 +113,11 @@ const RestaurantCard = ({
           {description}
         </Typography>
 
-        <Stack direction="row" spacing={1} flexwrap="wrap" useFlexGap>
+        <Stack
+          spacing={1}
+          useFlexGap
+          sx={{ direction: "row", flexwrap: "wrap" }}
+        >
           {keywords.map((k) => (
             <Typography
               key={k}

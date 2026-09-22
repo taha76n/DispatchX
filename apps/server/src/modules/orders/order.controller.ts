@@ -15,7 +15,7 @@ const ALLOWED_STATUSES: OrderStatus[] = [
 
 const createOrder = async (req: Request, res: Response) => {
   const customerId = req._id;
-  const { restaurantId, items } = req.body;
+  const { restaurantId, items, deliveryAddress } = req.body;
 
   let userRole = req.role;
 
@@ -40,7 +40,18 @@ const createOrder = async (req: Request, res: Response) => {
       .json({ success: false, message: "Items array is required" });
   }
 
-  const order = await orderService.createOrder(customerId, restaurantId, items);
+  if (
+    !deliveryAddress.text ||
+    !deliveryAddress.location?.type ||
+    !Array.isArray(deliveryAddress.location?.coordinates) ||
+    deliveryAddress.location.coordinates.length !== 2
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid address format" });
+  }
+
+  const order = await orderService.createOrder(customerId, restaurantId, items, deliveryAddress);
   return res
     .status(201)
     .json({ success: true, message: "Order placed successfully", order });

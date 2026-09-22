@@ -1,6 +1,7 @@
 import { Box, Button, Chip, Divider, Stack, Typography } from "@mui/material";
 import type { OrderData } from "../pages/MyOrders";
 import { useOrderTracking } from "../hooks/useOrderTracking";
+import LiveTrackingMap from "./LiveTrackingMap";
 
 const colors = {
   ink: "#14171C",
@@ -15,7 +16,7 @@ export type OrderStatus =
   | "placed"
   | "accepted"
   | "preparing"
-  |"rider_assigned"
+  | "rider_assigned"
   | "out_for_delivery"
   | "delivered"
   | "cancelled_by_customer"
@@ -76,8 +77,7 @@ const OrderCard = ({
   // live event comes in (empty string means "nothing pushed yet").
   const liveStatus = useOrderTracking(order._id);
   const status = (liveStatus || order.status) as OrderStatus;
-  const isRestaurant = variant === 'restaurant';
-
+  const isRestaurant = variant === "restaurant";
 
   const renderActions = () => {
     if (isRestaurant && onStatusChange) {
@@ -196,6 +196,11 @@ const OrderCard = ({
             bgcolor: `${STATUS_COLOR[status]}20`,
             color: STATUS_COLOR[status],
           }}
+        />
+
+        <LiveTrackingMap
+          orderId={order._id}
+          active={status === "rider_assigned" || status === "out_for_delivery"}
         />
       </Stack>
 

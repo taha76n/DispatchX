@@ -81,20 +81,50 @@ const RestaurantDetail = () => {
     navigate("/restaurants");
   };
 
+  const getCurrentPosition = (): Promise<GeolocationPosition> =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation unsupported"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+
   const onPlaceOrder = async () => {
+    setOrderError("");
+    setPlacingOrder(true);
+
+    let position: GeolocationPosition;
+
     try {
-      setOrderError("");
-      setPlacingOrder(true);
-      const items = Object.entries(cart).map((item) => ({
-        menuItemId: item[0],
-        quantity: item[1],
-      }));
+      position = await getCurrentPosition();
+    } catch {
+      setOrderError(
+        "We need your location to deliver this order. Please allow location access."
+      );
+      setPlacingOrder(false);
+      return;
+    }
+
+    const items = Object.entries(cart).map((item) => ({
+      menuItemId: item[0],
+      quantity: item[1],
+    }));
+
+    try {
       const { order } = await api.post("/order/create", {
         restaurantId,
         items,
+        deliveryAddress: {
+          text: "Current location", // see note below
+          location: {
+            type: "Point",
+            coordinates: [position.coords.longitude, position.coords.latitude],
+          },
+        },
       });
       setOrder(order);
-      setPlacingOrder(false);
+      setCart({});
     } catch (error) {
       if (error instanceof ApiError) {
         setOrderError(error.message);

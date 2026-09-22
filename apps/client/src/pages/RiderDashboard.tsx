@@ -156,6 +156,8 @@ const RiderDashboard = () => {
 
     const tick = setInterval(() => {
       navigator.geolocation.getCurrentPosition(async (pos) => {
+        console.log("ping");
+        
         try {
           await api.post("/rider/location", {
             longitude: pos.coords.longitude,

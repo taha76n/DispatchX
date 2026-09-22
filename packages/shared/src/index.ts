@@ -60,6 +60,14 @@ export interface PlacedOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
 }
 
@@ -69,6 +77,14 @@ export interface AcceptedOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
 }
@@ -79,6 +95,14 @@ export interface PreparingOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
   preparingAt: Date;
@@ -91,6 +115,14 @@ export interface RiderAssignedOrder {
   riderId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
   preparingAt: Date;
@@ -103,6 +135,14 @@ export interface OutForDeliveryOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
   preparingAt: Date;
@@ -115,6 +155,14 @@ export interface DeliveredOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
   preparingAt: Date;
@@ -128,6 +176,14 @@ export interface CancelledByCustomerOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   cancelledAt: Date;
 }
@@ -138,6 +194,14 @@ export interface CancelledByRestaurantOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
   cancelledAt: Date;
@@ -149,6 +213,14 @@ export interface TimedOutOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   timedOutAt: Date;
 }
@@ -159,6 +231,14 @@ export interface NoRiderFoundOrder {
   restaurantId: string;
   items: OrderItem[];
   totalPrice: number;
+  deliveryAddress: {
+    text: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  deliveryAddressText: string;
   placedAt: Date;
   acceptedAt: Date;
   preparingAt: Date;

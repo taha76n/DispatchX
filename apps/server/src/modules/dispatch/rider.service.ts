@@ -9,6 +9,7 @@ import { Order } from "../orders/order.model.js";
 import { Restaurant } from "../restaurants/restaurant.model.js";
 import { Rider } from "./rider.model.js";
 import { publishToOfferTimeoutDelayQueue } from "./offerTimeout.consumer.js";
+import { logger } from "../../shared/utils/logger.js";
 
 interface VehicleInfoInterface {
   numberPlate: string;
@@ -89,6 +90,23 @@ const emitRiderLocation = async (
   }
 
   const newLocation = await updateRiderLocation(riderId, longitude, latitude);
+
+  const activeOrder = await Order.findOne({
+    riderId,
+    status: { $in: ["rider_assigned", "out_for_delivery"] },
+  });
+
+  logger.info(`activeOrder found: ${!!activeOrder}, orderId: ${activeOrder?._id}`);
+
+
+  if (activeOrder) {
+    io.to(`order:${activeOrder._id}`).emit("riderLocationUpdate", {
+      orderId: activeOrder._id.toString(),
+      longitude,
+      latitude,
+    });
+  }
+
   return newLocation;
 };
 
