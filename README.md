@@ -308,15 +308,15 @@ RabbitMQ's management dashboard is available at `http://localhost:15672` for ins
 
 This project was built stage by stage, each one deliberately scoped before implementation:
 
-1. **Foundation** — pnpm monorepo, shared types, TypeScript across both apps
-2. **Auth & Core CRUD** — users, restaurants, menu items, orders
-3. **Order State Machine** — discriminated unions, transition validation
-4. **Async Messaging** — RabbitMQ, dead-letter queues, transactional email
-5. **Real-Time Layer** — Socket.IO, room-based delivery
-6. **Horizontal Scaling** — Redis adapter, verified with a real two-instance failure/fix
-7. **Geospatial** — MongoDB `2dsphere`, Redis geo commands, rider profiles
-8. **Dispatch Engine** — sequential offers, delayed timeouts, retry with a capped fallback
-9. **Live Tracking** — location streaming, Leaflet maps on both customer and rider sides
-10. **Rate Limiting** — Redis sliding-window protection on sensitive endpoints
+0. **Foundation** — pnpm monorepo, shared types, TypeScript across both apps
+1. **Auth & Core CRUD** — users, restaurants, menu items, orders
+2. **Order State Machine** — discriminated unions, transition validation
+3. **Async Messaging** — RabbitMQ, dead-letter queues, transactional email
+4. **Real-Time Layer** — Socket.IO, room-based delivery
+5. **Horizontal Scaling** — Redis adapter, verified with a real two-instance failure/fix
+6. **Geospatial** — MongoDB `2dsphere`, Redis geo commands, rider profiles
+7. **Dispatch Engine** — sequential offers, delayed timeouts, retry with a capped fallback
+8. **Live Tracking** — location streaming, Leaflet maps on both customer and rider sides
+9. **Rate Limiting** — Redis sliding-window protection on sensitive endpoints
 
 Each stage was built to work end-to-end and be manually verified — including deliberately breaking things (killing a RabbitMQ consumer mid-message, running two server instances to watch cross-instance delivery fail) before fixing them, rather than trusting an untested implementation.
